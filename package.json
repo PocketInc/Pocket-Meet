@@ -1,0 +1,17 @@
+{
+  "name": "pocket-meet",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Pocket, Inc.",
+  "license": "MIT",
+  "description": "Meet others with sharing screen or camera.",
+  "devDependencies": {
+    "electron": "^10.1.4"
+  },
+  "dependencies": {
+    "electron": "^10.1.4"
+  }
+}

@@ -1,0 +1,12 @@
+body {user-select: none;}
+h2 {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+.btn {
+    font-family: Courier New;
+    background-color: skyblue;
+    border: 2px solid black;
+}
+#err {
+    color: red;
+}

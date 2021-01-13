@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Join Meeting</title>
+    <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
+
+</head>
+<body>
+<video id="video" hidden="hidden"></video>
+<video id="video1"></video>
+
+<script>
+    const { desktopCapturer, ipcRenderer } = require('electron')
+
+    desktopCapturer.getSources({types: ['window', 'screen']}).then(async sources => {
+        for (const source of sources) {
+            if (source.name === 'Entire Screen') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: false,
+                        video: {
+                            mandatory: {
+                                chromeMediaSource: 'desktop',
+                                chromeMediaSourceId: source.id,
+                                minWidth: 1280,
+                                maxWidth: 1280,
+                                minHeight: 720,
+                                maxHeight: 720
+                            }
+                        }
+                    })
+                    handleStream(stream)
+                } catch (e) {
+                    handleError(e)
+                }
+                return
+            }
+        }
+    })
+
+    function handleStream(stream) {
+        const video = document.querySelector('video')
+        video.srcObject = stream
+        video.onloadedmetadata = (e) => video.play()
+        videoStream = stream;
+
+    }
+
+    function handleError(e) {
+        console.log(e)
+    }
+    var peer = new Peer();
+    function connect(id) {
+        let conn = peer.connect(id);
+        conn.on('open', function () {
+            console.log("Connection Started")
+            var call = peer.call(id, document.getElementById('video').srcObject);
+            conn.on('data', function (data) {
+                console.log('Received', data);
+            });
+            conn.send('hello')
+            call.on('stream', function(stream) {
+                console.log(stream)
+                document.getElementById('video1').srcObject = stream
+                document.getElementById('video1').onloadedmetadata = (e) => document.getElementById('video1').play()
+            });
+        })
+    }
+</script>
+</body>
+</html>
