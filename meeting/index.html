@@ -2,22 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Start Meeting - ADMIN</title>
+    <title>New Meeting - Pocket Meet</title>
     <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
 
 </head>
-<body>
+<body bgcolor="#00bfff">
 
 <video id="video" hidden="hidden"></video>
-<video id="video1"></video>
+<h1 style="text-align: center;font-family: Cambria">Meeting Started!</h1>
+<p style="text-align: center;font-family: 'Droid Sans'">ID: <span id="id">P-000000000-M</span></p>
+<small style="text-align: center">Connections: <span id="conn">0</span></small>
+<center>
+        <h2>Chat:</h2>
+        <input id="msg"><button onclick="sendMsg()">Send</button>
+        <div id="chat"></div>
+</center>
+
 <script>// In the renderer process.
-var peer = new Peer();
+let randomID = Math.floor(Math.random() * (999999999 - 100000000 + 1) ) + 100000000;
+var peer = new Peer("P-" + randomID.toString() + "-M");
 
 
 const { desktopCapturer, ipcRenderer } = require('electron')
 let videoStream;
 peer.on('open', function(id) {
     console.log('My peer ID is: ' + id);
+    document.getElementById('id').innerHTML = id;
     desktopCapturer.getSources({types: ['window', 'screen']}).then(async sources => {
         for (const source of sources) {
             if (source.name === 'Entire Screen') {
@@ -66,21 +76,37 @@ peer.on('open', function(id) {
     });*/
     peer.on('connection',function (conn) {
         console.log("New Connection")
-        conn.send('Hello!');
+        document.getElementById('conn').innerHTML = parseInt(document.getElementById('conn').innerHTML) + 1;
             // Receive messages
             conn.on('data', function(data) {
                 console.log('Received', data);
+                document.getElementById('chat').innerHTML += data + "<br>"
+                for (let i=0;i<Object.keys(peer.connections).length;i++) {
+                    peer.connections[Object.keys(peer.connections)[i]][0].send(data)
+                }
             });
+    })
+    peer.on('disconnected',function () {
+        document.getElementById('conn').innerHTML = parseInt(document.getElementById('conn').innerHTML) - 1;
     })
 
 })
 peer.on('call', function(call) {
     // Answer the call, providing our mediaStream
     call.answer(document.getElementById('video').srcObject);
-    call.on('stream',function (stream) {
-        document.getElementById('video1').srcObject = stream
-    })
 });
+peer.on('error',function (err) {
+alert("Error Occured: " + err.type)
+})
+
+function sendMsg() {
+    let data = document.getElementById('msg').value;
+    document.getElementById('chat').innerHTML += "<b>(HOST): </b>" + data + "<br>";
+    for (let i=0;i<Object.keys(peer.connections).length;i++) {
+        peer.connections[Object.keys(peer.connections)[i]][0].send("<b>(HOST): </b>" + data)
+    }
+    document.getElementById('msg').value = ""
+}
 </script>
 </body>
 </html>

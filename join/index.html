@@ -2,71 +2,92 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Join Meeting</title>
+    <title>Join Meeting - Pocket Meet</title>
     <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
+    <style>
+        #video {
+            max-width: 70%;
+            max-height: 60%;
+            position: fixed;
+            top: 25%;
+            border: 3px solid black;
+            background-color: white;
+            object-fit: cover;
 
+        }
+        #chat {
+            height: 100%;
+            width: 20%;
+            right: 0%;
+            top: 0%;
+            border: 3px solid black;
+            position: fixed;
+            background-color: darkslategrey;
+        }
+    </style>
 </head>
-<body>
-<video id="video" hidden="hidden"></video>
-<video id="video1"></video>
+<body bgcolor="#00bfff">
+<video id="video"></video>
+<div id="chat"><h1 style="text-align: center">Chat:</h1><div id="msgs"></div><input id="msg"><button onclick="sendMsg()">Send</button></div>
 
 <script>
-    const { desktopCapturer, ipcRenderer } = require('electron')
+    function createEmptyAudioTrack() {
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const dst = oscillator.connect(ctx.createMediaStreamDestination());
+    oscillator.start();
+    const track = dst.stream.getAudioTracks()[0];
+    return Object.assign(track, { enabled: false });
+}
 
-    desktopCapturer.getSources({types: ['window', 'screen']}).then(async sources => {
-        for (const source of sources) {
-            if (source.name === 'Entire Screen') {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        audio: false,
-                        video: {
-                            mandatory: {
-                                chromeMediaSource: 'desktop',
-                                chromeMediaSourceId: source.id,
-                                minWidth: 1280,
-                                maxWidth: 1280,
-                                minHeight: 720,
-                                maxHeight: 720
-                            }
-                        }
-                    })
-                    handleStream(stream)
-                } catch (e) {
-                    handleError(e)
-                }
-                return
-            }
-        }
-    })
+function createEmptyVideoTrack(width,height) {
+    const canvas = Object.assign(document.createElement('canvas'), { width, height });
+    canvas.getContext('2d').fillRect(0, 0, width, height);
 
-    function handleStream(stream) {
-        const video = document.querySelector('video')
-        video.srcObject = stream
-        video.onloadedmetadata = (e) => video.play()
-        videoStream = stream;
+    const stream = canvas.captureStream();
+    const track = stream.getVideoTracks()[0];
 
-    }
-
-    function handleError(e) {
-        console.log(e)
-    }
+    return Object.assign(track, { enabled: false });
+}
     var peer = new Peer();
+    let conn;
     function connect(id) {
-        let conn = peer.connect(id);
+        const audioTrack = createEmptyAudioTrack();
+        const videoTrack = createEmptyVideoTrack(640,480);
+        const mediaStream = new MediaStream([audioTrack, videoTrack]);
+        conn = peer.connect(id);
+        console.log(id)
         conn.on('open', function () {
             console.log("Connection Started")
-            var call = peer.call(id, document.getElementById('video').srcObject);
+            var call = peer.call(id, mediaStream);
             conn.on('data', function (data) {
                 console.log('Received', data);
+                document.getElementById('msgs').innerHTML += data + "<br>";
             });
-            conn.send('hello')
             call.on('stream', function(stream) {
                 console.log(stream)
-                document.getElementById('video1').srcObject = stream
-                document.getElementById('video1').onloadedmetadata = (e) => document.getElementById('video1').play()
+                document.getElementById('video').srcObject = stream
+                document.getElementById('video').onloadedmetadata = (e) => document.getElementById('video').play()
             });
         })
     }
+    function sendMsg() {
+        let msg = document.getElementById('msg').value + "<br>";
+        document.getElementById('msg').value = "";
+        conn.send(msg);
+    }
+        window.onload = function () {
+        setTimeout(function () {
+        idJSON = localStorage.getItem("meeting");
+        idObj = JSON.parse(idJSON);
+        connect(idObj.id)
+        },5000)
+        }
+    let state = false;
+    document.getElementById('video').addEventListener('contextmenu',function () {
+        document.getElementById('video').controls = !state;
+        state = !state;
+    })
 </script>
 </body>
 </html>

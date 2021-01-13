@@ -10,5 +10,5 @@ function createMeeting() {
         }
     })
     anotherWindow.loadFile("meeting/index.html")
-    //anotherWindow.setMenu(null)
+    anotherWindow.setMenu(null)
 }
